@@ -18,16 +18,17 @@ fn main() {
             let mut game = game.lock().unwrap();
             let new_pos = Position {
                 x: game.pos.x,
-                y: game.pos.y.checked_add(1).unwrap_or_else(|| game.pos.y),
+                y: game.pos.y + 1,
             };
 
-            if !is_collision(&game.field, &new_pos, game.block) {
+            if !is_collision(&game.field, &new_pos, &game.block) {
                 game.pos = new_pos;
             } else {
                 fix_block(&mut game);
                 erase_line(&mut game.field);
-                game.pos = Position::init();
-                game.block = rand::random();
+                if spawn_block(&mut game).is_err() {
+                    gameover(&game)
+                }
             }
             draw(&game);
         });
@@ -37,9 +38,7 @@ fn main() {
         let g = Getch::new();
         match g.getch() {
             Ok(Key::Char('q')) => {
-                // カーソルを再表示
-                println!("\x1b[?25h");
-                return;
+                quit();
             }
             Ok(Key::Left) => {
                 let mut game = game.lock().unwrap();
@@ -53,7 +52,7 @@ fn main() {
             Ok(Key::Right) => {
                 let mut game = game.lock().unwrap();
                 let new_pos = Position {
-                    x: game.pos.x.checked_add(1).unwrap_or_else(|| game.pos.x),
+                    x: game.pos.x + 1,
                     y: game.pos.y,
                 };
                 move_block(&mut game, new_pos);
@@ -63,9 +62,19 @@ fn main() {
                 let mut game = game.lock().unwrap();
                 let new_pos = Position {
                     x: game.pos.x,
-                    y: game.pos.y.checked_add(1).unwrap_or_else(|| game.pos.y),
+                    y: game.pos.y + 1,
                 };
                 move_block(&mut game, new_pos);
+                draw(&game);
+            }
+            Ok(Key::Char('x')) => {
+                let mut game = game.lock().unwrap();
+                rotate_right(&mut game);
+                draw(&game);
+            }
+            Ok(Key::Char('z')) => {
+                let mut game = game.lock().unwrap();
+                rotate_left(&mut game);
                 draw(&game);
             }
             _ => (),
